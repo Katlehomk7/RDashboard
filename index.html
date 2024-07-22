@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liesbeeck Residence Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#" onclick="showPage('serviceRatingPage')">Service Rating</a></li>
+                <li><a href="#" onclick="showPage('dashboardPage')">Dashboard</a></li>
+                <li><a href="#" onclick="showPage('serviceHelpPage')">Service Help</a></li>
+            </ul>
+        </nav>
+    </header>
+    <div id="serviceRatingPage" class="page">
+        <div class="container">
+            <h1>Liesbeeck Gardens Residence Facilities Dashboard</h1>
+
+            <div class="ratings-section">
+                <h2>Rate the Services</h2>
+                
+                <div class="rating-item">
+                    <label for="labRating">Lab Assistance:</label>
+                    <input type="range" id="labRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('labRating', 'labValue')" onmouseover="showTooltip('labRating')" onmouseout="hideTooltip()">
+                    <span id="labValue">😁</span>
+                    <span class="percentage" id="labPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="printerRating">Printer Functionality:</label>
+                    <input type="range" id="printerRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('printerRating', 'printerValue')" onmouseover="showTooltip('printerRating')" onmouseout="hideTooltip()">
+                    <span id="printerValue">😁</span>
+                    <span class="percentage" id="printerPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="studyRoomRating">Study Room Conditions:</label>
+                    <input type="range" id="studyRoomRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('studyRoomRating', 'studyRoomValue')" onmouseover="showTooltip('studyRoomRating')" onmouseout="hideTooltip()">
+                    <span id="studyRoomValue">😁</span>
+                    <span class="percentage" id="studyRoomPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="laundryRoomRating">Laundry Room Conditions:</label>
+                    <input type="range" id="laundryRoomRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('laundryRoomRating', 'laundryRoomValue')" onmouseover="showTooltip('laundryRoomRating')" onmouseout="hideTooltip()">
+                    <span id="laundryRoomValue">😁</span>
+                    <span class="percentage" id="laundryRoomPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="receptionStaffRating">Reception Staff Assistance:</label>
+                    <input type="range" id="receptionStaffRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('receptionStaffRating', 'receptionStaffValue')" onmouseover="showTooltip('receptionStaffRating')" onmouseout="hideTooltip()">
+                    <span id="receptionStaffValue">😁</span>
+                    <span class="percentage" id="receptionStaffPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="subwardenAssistanceRating">Subwarden Assistance:</label>
+                    <input type="range" id="subwardenAssistanceRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('subwardenAssistanceRating', 'subwardenAssistanceValue')" onmouseover="showTooltip('subwardenAssistanceRating')" onmouseout="hideTooltip()">
+                    <span id="subwardenAssistanceValue">😁</span>
+                    <span class="percentage" id="subwardenAssistancePercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="uctShuttlePunctualityRating">UCT Shuttle Punctuality:</label>
+                    <input type="range" id="uctShuttlePunctualityRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('uctShuttlePunctualityRating', 'uctShuttlePunctualityValue')" onmouseover="showTooltip('uctShuttlePunctualityRating')" onmouseout="hideTooltip()">
+                    <span id="uctShuttlePunctualityValue">😁</span>
+                    <span class="percentage" id="uctShuttlePunctualityPercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="cpsAssistanceRating">CPS Assistance:</label>
+                    <input type="range" id="cpsAssistanceRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('cpsAssistanceRating', 'cpsAssistanceValue')" onmouseover="showTooltip('cpsAssistanceRating')" onmouseout="hideTooltip()">
+                    <span id="cpsAssistanceValue">😁</span>
+                    <span class="percentage" id="cpsAssistancePercentage">100%</span>
+                </div>
+                <div class="rating-item">
+                    <label for="otherRating">Other:</label>
+                    <input type="range" id="otherRating" min="0" max="100" step="25" value="100" oninput="showRatingValue('otherRating', 'otherValue')" onmouseover="showTooltip('otherRating')" onmouseout="hideTooltip()">
+                    <span id="otherValue">😁</span>
+                    <span class="percentage" id="otherPercentage">100%</span>
+                </div>
+                <div class="submit-ratings">
+                    <button type="button" onclick="submitRatings()">Submit Ratings</button>
+                </div>
+            </div>
+
+            <div class="comments-section">
+                <h2>Any additional comment on services or other?</h2>
+                <div class="comment-input-container">
+                    <textarea id="commentsInput" rows="2" placeholder="Write your comment here..."></textarea>
+                    <button type="button" onclick="submitComment()">&#9658;</button>
+                </div>
+            </div>
+
+            <div class="display-section">
+                <h2>Submitted Comments</h2>
+                <ul id="commentsList"></ul>
+            </div>
+
+            <div class="attention-section">
+                <h2>Areas Needing Attention</h2>
+                <ul id="attentionList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardPage" class="page" style="display:none;">
+        <div class="container">
+            <h1>Dashboard</h1>
+            <label for="monthDropdown">Select Month:</label>
+            <select id="monthDropdown" onchange="updateDashboard()">
+                <option value="january">January</option>
+                <option value="february">February</option>
+                <option value="march">March</option>
+                <option value="april">April</option>
+                <option value="may">May</option>
+                <option value="june">June</option>
+                <option value="july">July</option>
+                <option value="august">August</option>
+                <option value="september">September</option>
+                <option value="october">October</option>
+                <option value="november">November</option>
+                <option value="december">December</option>
+            </select>
+            <h2> Average Service Ratings</h2>
+            <canvas id="ratingsChart"></canvas>
+            <div class="attention-section">
+                <h2>Areas Needing Attention</h2>
+                <ul id="dashboardAttentionList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="serviceHelpPage" class="page" style="display:none;">
+        <div class="container">
+            <h1>Service Help</h1>
+            <p>This page will provide information or support for users needing assistance with services.</p>
+            <!-- Service help content here -->
+        </div>
+    </div>
+    <div id="tooltip" class="tooltip" style="display:none;"></div>
+    <script src="script.js"></script>
+</body>
+</html>
+
+
