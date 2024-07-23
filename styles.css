@@ -10,6 +10,10 @@ header {
     background-color: #333;
     color: white;
     padding: 10px 0;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    width: 100%;
 }
 
 header nav ul {
@@ -57,14 +61,19 @@ h1, h2 {
     align-items: center;
     margin-bottom: 15px;
 }
-
+.rating-item label {
+    flex: 1;
+}
 .rating-item input[type="range"] {
     width: 60%;
     height: 20px; /* Make the rating bar bolder */
+    flex: 2;
+    margin: 0 10px;
 }
 
 .rating-item span {
     font-size: 2em; /* Make emojis larger */
+    flex: 1;
 }
 
 textarea {
@@ -78,8 +87,17 @@ textarea {
     display: flex;
     justify-content: center;
     align-items: center;
+    
 }
-
+.comment-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    align-items: center;
+}
+.comment-footer button:hover {
+    background: #0056b3;
+}
 .comment-input-container button {
     display: inline-block;
     background: #007bff;
@@ -91,10 +109,40 @@ textarea {
     border-radius: 50%;
     width: 40px;
     height: 40px;
-    margin-left: 10px;
+
 }
 
-button:hover {
+.left-buttons {
+    display: flex;
+    gap: 5px; /* Adjust the gap between reply and delete buttons */
+}
+
+.comment-footer button {
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.comment-footer button:hover {
+    background: #0056b3;
+}
+
+.submit-reply-button {
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1em;
+    padding: 5px 10px;
+    border-radius: 5px;
+    margin-top: 5px; /* Add some margin to separate from the text area */
+}
+
+.submit-reply-button:hover {
     background: #0056b3;
 }
 
