@@ -1,8 +1,23 @@
-document.addEventListener('DOMContentLoaded', () => {
- showPage(serviceRatingPage);
+document.addEventListener('DOMContentLoaded', function() {
+
+    const lastVisitedPage = localStorage.getItem('lastVisitedPage');
+
+    if (lastVisitedPage) {
+        showPage(lastVisitedPage);
+    } else {
+        // Default to service ratings page if no page is stored
+        showPage('serviceRatingsPage');
+    }
     initializeChart();
   loadComments();
 });
+
+window.addEventListener('beforeunload', function() {
+    // Store the current active page in localStorage
+    const activePage = document.querySelector('.page.active').id;
+    localStorage.setItem('lastVisitedPage', activePage);
+});
+
 
 function showPage(pageId) {
     const pages = document.querySelectorAll('.page');
@@ -13,11 +28,13 @@ function showPage(pageId) {
             page.style.display = 'none';
         }
     });
-
+    
+        
     if (pageId === 'dashboardPage') {
         updateDashboardAttentionList();
     }
 }
+
 
 function showRatingValue(rangeId, spanId) {
     const value = document.getElementById(rangeId).value;
@@ -27,12 +44,12 @@ function showRatingValue(rangeId, spanId) {
 
 function getEmojiForRating(value) {
     switch (parseInt(value, 10)) {
-        case 0: return '😭';
-        case 25: return '😕';
-        case 50: return '😐';
-        case 75: return '😊';
-        case 100: return '😁';
-        default: return '😁';
+        case 0: return '😭 0%';
+        case 25: return '😕 25%';
+        case 50: return '😐 50%';
+        case 75: return '😊 75%';
+        case 100: return '😁 100%';
+        default: return '😁 100%';
     }
 }
 
@@ -96,6 +113,7 @@ function submitRatings() {
     });
 
     const averages = calculateAverages();
+    alert('Ratings submitted successfully!');
     displayAttentionAreas(averages);
     updateDashboardChart(averages);
 }
@@ -179,7 +197,6 @@ function submitComment() {
 
     commentInput.value = '';
 }
-
 function createCommentItem(commentText, likes = 0, replies = []) {
     const commentItem = document.createElement('li');
     commentItem.classList.add('comment');
@@ -187,20 +204,6 @@ function createCommentItem(commentText, likes = 0, replies = []) {
 
     const commentFooter = document.createElement('div');
     commentFooter.classList.add('comment-footer');
-
-    const likeButton = document.createElement('button');
-    likeButton.textContent = `Like (${likes})`;
-    likeButton.dataset.likes = likes;
-    likeButton.dataset.liked = 'false';
-    likeButton.onclick = function() {
-        if (likeButton.dataset.liked === 'false') {
-            const likes = parseInt(likeButton.dataset.likes) + 1;
-            likeButton.dataset.likes = likes;
-            likeButton.textContent = `Like (${likes})`;
-            likeButton.dataset.liked = 'true';
-            saveComments();
-        }
-    };
 
     const replyButton = document.createElement('button');
     replyButton.textContent = 'Reply';
@@ -214,6 +217,7 @@ function createCommentItem(commentText, likes = 0, replies = []) {
         replyInput.placeholder = 'Write a reply...';
         const submitReplyButton = document.createElement('button');
         submitReplyButton.textContent = 'Submit Reply';
+        submitReplyButton.classList.add('submit-reply-button');
         submitReplyButton.onclick = function() {
             const replyText = replyInput.value.trim();
             if (replyText === '') return;
@@ -234,9 +238,27 @@ function createCommentItem(commentText, likes = 0, replies = []) {
         saveComments();
     };
 
+    const likeButton = document.createElement('button');
+    likeButton.textContent = `Like (${likes})`;
+    likeButton.dataset.likes = likes;
+    likeButton.dataset.liked = 'false';
+    likeButton.onclick = function() {
+        if (likeButton.dataset.liked === 'false') {
+            const likes = parseInt(likeButton.dataset.likes) + 1;
+            likeButton.dataset.likes = likes;
+            likeButton.textContent = `Like (${likes})`;
+            likeButton.dataset.liked = 'true';
+            saveComments();
+        }
+    };
+
+    const leftButtonsDiv = document.createElement('div');
+    leftButtonsDiv.classList.add('left-buttons');
+    leftButtonsDiv.appendChild(replyButton);
+    leftButtonsDiv.appendChild(deleteButton);
+
+    commentFooter.appendChild(leftButtonsDiv);
     commentFooter.appendChild(likeButton);
-    commentFooter.appendChild(replyButton);
-    commentFooter.appendChild(deleteButton);
     commentItem.appendChild(commentFooter);
 
     const repliesContainer = document.createElement('ul');
@@ -258,20 +280,6 @@ function createReplyItem(replyText, likes = 0, replies = []) {
     const commentFooter = document.createElement('div');
     commentFooter.classList.add('comment-footer');
 
-    const likeButton = document.createElement('button');
-    likeButton.textContent = `Like (${likes})`;
-    likeButton.dataset.likes = likes;
-    likeButton.dataset.liked = 'false';
-    likeButton.onclick = function() {
-        if (likeButton.dataset.liked === 'false') {
-            const likes = parseInt(likeButton.dataset.likes) + 1;
-            likeButton.dataset.likes = likes;
-            likeButton.textContent = `Like (${likes})`;
-            likeButton.dataset.liked = 'true';
-            saveComments();
-        }
-    };
-
     const replyButton = document.createElement('button');
     replyButton.textContent = 'Reply';
     replyButton.onclick = function() {
@@ -284,6 +292,7 @@ function createReplyItem(replyText, likes = 0, replies = []) {
         replyInput.placeholder = 'Write a reply...';
         const submitReplyButton = document.createElement('button');
         submitReplyButton.textContent = 'Submit Reply';
+        submitReplyButton.classList.add('submit-reply-button');
         submitReplyButton.onclick = function() {
             const replyText = replyInput.value.trim();
             if (replyText === '') return;
@@ -304,9 +313,27 @@ function createReplyItem(replyText, likes = 0, replies = []) {
         saveComments();
     };
 
+    const likeButton = document.createElement('button');
+    likeButton.textContent = `Like (${likes})`;
+    likeButton.dataset.likes = likes;
+    likeButton.dataset.liked = 'false';
+    likeButton.onclick = function() {
+        if (likeButton.dataset.liked === 'false') {
+            const likes = parseInt(likeButton.dataset.likes) + 1;
+            likeButton.dataset.likes = likes;
+            likeButton.textContent = `Like (${likes})`;
+            likeButton.dataset.liked = 'true';
+            saveComments();
+        }
+    };
+
+    const leftButtonsDiv = document.createElement('div');
+    leftButtonsDiv.classList.add('left-buttons');
+    leftButtonsDiv.appendChild(replyButton);
+    leftButtonsDiv.appendChild(deleteButton);
+
+    commentFooter.appendChild(leftButtonsDiv);
     commentFooter.appendChild(likeButton);
-    commentFooter.appendChild(replyButton);
-    commentFooter.appendChild(deleteButton);
     replyItem.appendChild(commentFooter);
 
     const repliesContainer = document.createElement('ul');
@@ -318,8 +345,9 @@ function createReplyItem(replyText, likes = 0, replies = []) {
     replyItem.appendChild(repliesContainer);
 
     return replyItem;
-
 }
+
+
 
 function saveComments() {
     const commentsList = document.getElementById('commentsList');
@@ -377,8 +405,8 @@ function initializeChart() {
             datasets: [{
                 label: 'Average Ratings',
                 data: [],
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(255, 99, 142, 0.6)',
+                borderColor: 'rgba(255, 99, 142, 1)',
                 borderWidth: 1
             }]
         },
