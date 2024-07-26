@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     initializeChart();
   loadComments();
+  setCurrentMonthInDropdown();
 });
 
 window.addEventListener('beforeunload', function() {
@@ -23,8 +24,10 @@ function showPage(pageId) {
     const pages = document.querySelectorAll('.page');
     pages.forEach(page => {
         if (page.id === pageId) {
+            page.classList.add('active');
             page.style.display = 'block';
         } else {
+            page.classList.remove('active');
             page.style.display = 'none';
         }
     });
@@ -33,6 +36,15 @@ function showPage(pageId) {
     if (pageId === 'dashboardPage') {
         updateDashboardAttentionList();
     }
+}
+function setCurrentMonthInDropdown() {
+    const monthDropdown = document.getElementById('monthDropdown');
+    const currentMonth = new Date().getMonth(); // Get the current month (0-11)
+    const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    monthDropdown.value = monthNames[currentMonth]; // Set the dropdown to the current month
 }
 
 
@@ -86,10 +98,31 @@ function getTooltipForValue(value) {
     }
 }
 
-const allRatings = [];
+
 const comments = [];
 
+const allRatingsByMonth = JSON.parse(localStorage.getItem('allRatingsByMonth')) || {};
+
 function submitRatings() {
+    const currentDate = new Date(); // Initialize currentDate here
+    const currentMonth = currentDate.getMonth();
+    const currentYear = currentDate.getFullYear();
+    const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    const currentMonthName = monthNames[currentMonth];
+    const submissionKey = `${currentYear}-${currentMonthName}`;
+
+    if (localStorage.getItem(submissionKey)) {
+        alert("You have already submitted your ratings for this month.");
+        return;
+    }
+
+    // Save the current date as the submission date
+    localStorage.setItem(submissionKey, currentDate.toString());
+
+    // Proceed with the submission logic
     const labRating = parseInt(document.getElementById('labRating').value, 10);
     const printerRating = parseInt(document.getElementById('printerRating').value, 10);
     const studyRoomRating = parseInt(document.getElementById('studyRoomRating').value, 10);
@@ -100,7 +133,11 @@ function submitRatings() {
     const cpsAssistanceRating = parseInt(document.getElementById('cpsAssistanceRating').value, 10);
     const otherRating = parseInt(document.getElementById('otherRating').value, 10);
 
-    allRatings.push({ 
+    if (!allRatingsByMonth[currentMonth]) {
+        allRatingsByMonth[currentMonth] = [];
+    }
+
+    allRatingsByMonth[currentMonth].push({
         labRating, 
         printerRating, 
         studyRoomRating,
@@ -112,11 +149,14 @@ function submitRatings() {
         otherRating
     });
 
-    const averages = calculateAverages();
+    localStorage.setItem('allRatingsByMonth', JSON.stringify(allRatingsByMonth));
+
+    const averages = calculateAverages(allRatingsByMonth[currentMonth]);
     alert('Ratings submitted successfully!');
     displayAttentionAreas(averages);
     updateDashboardChart(averages);
 }
+
 function loadComments() {
     const commentsList = document.getElementById('commentsList');
     commentsList.innerHTML = '';
@@ -125,52 +165,11 @@ function loadComments() {
         const commentItem = createCommentItem(comment.text);
         commentItem.querySelector('button[data-likes]').dataset.likes = comment.likes;
         commentItem.querySelector('button[data-likes]').textContent = `Like (${comment.likes})`;
-        const repliesContainer = commentItem.querySelector('.replies-container');
-        comment.replies.forEach(replyText => {
-            const replyItem = createReplyItem(replyText);
-            repliesContainer.appendChild(replyItem);
-        });
+        
         commentsList.appendChild(commentItem);
     });
 }
-function calculateAverages() {
-    const sum = allRatings.reduce((acc, rating) => {
-        acc.labRating += rating.labRating;
-        acc.printerRating += rating.printerRating;
-        acc.studyRoomRating += rating.studyRoomRating;
-        acc.laundryRoomRating += rating.laundryRoomRating;
-        acc.receptionStaffRating += rating.receptionStaffRating;
-        acc.subwardenAssistanceRating += rating.subwardenAssistanceRating;
-        acc.uctShuttlePunctualityRating += rating.uctShuttlePunctualityRating;
-        acc.cpsAssistanceRating += rating.cpsAssistanceRating;
-        acc.otherRating += rating.otherRating;
-        return acc;
-    }, {
-        labRating: 0,
-        printerRating: 0,
-        studyRoomRating: 0,
-        laundryRoomRating: 0,
-        receptionStaffRating: 0,
-        subwardenAssistanceRating: 0,
-        uctShuttlePunctualityRating: 0,
-        cpsAssistanceRating: 0,
-        otherRating: 0
-    });
 
-    const averages = {
-        labRating: sum.labRating / allRatings.length,
-        printerRating: sum.printerRating / allRatings.length,
-        studyRoomRating: sum.studyRoomRating / allRatings.length,
-        laundryRoomRating: sum.laundryRoomRating / allRatings.length,
-        receptionStaffRating: sum.receptionStaffRating / allRatings.length,
-        subwardenAssistanceRating: sum.subwardenAssistanceRating / allRatings.length,
-        uctShuttlePunctualityRating: sum.uctShuttlePunctualityRating / allRatings.length,
-        cpsAssistanceRating: sum.cpsAssistanceRating / allRatings.length,
-        otherRating: sum.otherRating/ allRatings.length
-    };
-
-    return averages;
-}
 
 function displayAttentionAreas(averages) {
     const attentionList = document.getElementById('attentionList');
@@ -197,6 +196,7 @@ function submitComment() {
 
     commentInput.value = '';
 }
+
 function createCommentItem(commentText, likes = 0, replies = []) {
     const commentItem = document.createElement('li');
     commentItem.classList.add('comment');
@@ -208,9 +208,9 @@ function createCommentItem(commentText, likes = 0, replies = []) {
     const replyButton = document.createElement('button');
     replyButton.textContent = 'Reply';
     replyButton.onclick = function() {
-        const existingReplyInput = commentItem.querySelector('.reply-input');
-        if (existingReplyInput) {
-            existingReplyInput.remove();
+        
+        if (document.querySelector('.reply-input')) {
+            return; 
         }
         const replyInput = document.createElement('textarea');
         replyInput.classList.add('reply-input');
@@ -263,18 +263,20 @@ function createCommentItem(commentText, likes = 0, replies = []) {
 
     const repliesContainer = document.createElement('ul');
     repliesContainer.classList.add('replies-container');
-    replies.forEach(reply => {
-        const replyItem = createReplyItem(reply.text, reply.likes, reply.replies);
-        repliesContainer.appendChild(replyItem);
-    });
+    if (replies.length > 0) {
+        replies.forEach(replyText => {
+            const replyItem = createReplyItem(replyText);
+            repliesContainer.appendChild(replyItem);
+        });
+    }
+
     commentItem.appendChild(repliesContainer);
 
     return commentItem;
 }
-
 function createReplyItem(replyText, likes = 0, replies = []) {
     const replyItem = document.createElement('li');
-    replyItem.classList.add('comment');
+    replyItem.classList.add('reply');
     replyItem.innerHTML = `<div class="comment-text">${replyText}</div>`;
 
     const commentFooter = document.createElement('div');
@@ -283,9 +285,9 @@ function createReplyItem(replyText, likes = 0, replies = []) {
     const replyButton = document.createElement('button');
     replyButton.textContent = 'Reply';
     replyButton.onclick = function() {
-        const existingReplyInput = replyItem.querySelector('.reply-input');
-        if (existingReplyInput) {
-            existingReplyInput.remove();
+        // Check if there is already an active reply input
+        if (document.querySelector('.reply-input')) {
+            return; // Do nothing if a reply input already exists
         }
         const replyInput = document.createElement('textarea');
         replyInput.classList.add('reply-input');
@@ -346,20 +348,19 @@ function createReplyItem(replyText, likes = 0, replies = []) {
 
     return replyItem;
 }
-
-
-
 function saveComments() {
     const commentsList = document.getElementById('commentsList');
-    const comments = [];
-    commentsList.querySelectorAll('li.comment').forEach(commentItem => {
+    const commentItems = commentsList.getElementsByClassName('comment');
+
+    const savedComments = Array.from(commentItems).map(commentItem => {
         const commentText = commentItem.querySelector('.comment-text').textContent;
-        const likes = parseInt(commentItem.querySelector('button[data-likes]').dataset.likes);
-        const replies = saveReplies(commentItem.querySelector('.replies-container'));
-        const comment = { text: commentText, likes: likes, replies: replies };
-        comments.push(comment);
+        const likes = commentItem.querySelector('button[data-likes]').dataset.likes;
+        const replies = Array.from(commentItem.querySelectorAll('.replies-container .reply'))
+            .map(replyItem => replyItem.childNodes[0].textContent);
+        return { text: commentText, likes: parseInt(likes), replies: replies };
     });
-    localStorage.setItem('comments', JSON.stringify(comments));
+
+    localStorage.setItem('comments', JSON.stringify(savedComments));
 }
 
 function saveReplies(repliesContainer) {
@@ -386,6 +387,19 @@ function loadComments() {
 
 
 
+function updateChartForSelectedMonth() {
+    const monthDropdown = document.getElementById('monthDropdown');
+    const selectedMonth = monthDropdown.value;
+    const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+    ];
+    const monthIndex = monthNames.indexOf(selectedMonth);
+    const ratingsForSelectedMonth = allRatingsByMonth[monthIndex] || [];
+    const averages = calculateAverages(ratingsForSelectedMonth);
+    updateDashboardChart(averages);
+}
+
 function initializeChart() {
     const ctx = document.getElementById('ratingsChart').getContext('2d');
     window.ratingsChart = new Chart(ctx, {
@@ -409,6 +423,7 @@ function initializeChart() {
                 borderColor: 'rgba(255, 99, 142, 1)',
                 borderWidth: 1
             }]
+            
         },
         options: {
             scales: {
@@ -437,6 +452,47 @@ function updateDashboardChart(averages) {
     ];
     ratingsChart.update();
 }
+function calculateAverages(ratings) {
+    if (!ratings || ratings.length === 0) return {};
+
+    const sum = ratings.reduce((acc, rating) => {
+        acc.labRating += rating.labRating;
+        acc.printerRating += rating.printerRating;
+        acc.studyRoomRating += rating.studyRoomRating;
+        acc.laundryRoomRating += rating.laundryRoomRating;
+        acc.receptionStaffRating += rating.receptionStaffRating;
+        acc.subwardenAssistanceRating += rating.subwardenAssistanceRating;
+        acc.uctShuttlePunctualityRating += rating.uctShuttlePunctualityRating;
+        acc.cpsAssistanceRating += rating.cpsAssistanceRating;
+        acc.otherRating += rating.otherRating;
+        return acc;
+    }, {
+        labRating: 0,
+        printerRating: 0,
+        studyRoomRating: 0,
+        laundryRoomRating: 0,
+        receptionStaffRating: 0,
+        subwardenAssistanceRating: 0,
+        uctShuttlePunctualityRating: 0,
+        cpsAssistanceRating: 0,
+        otherRating: 0
+    });
+
+    const averages = {
+        labRating: sum.labRating / ratings.length,
+        printerRating: sum.printerRating / ratings.length,
+        studyRoomRating: sum.studyRoomRating / ratings.length,
+        laundryRoomRating: sum.laundryRoomRating / ratings.length,
+        receptionStaffRating: sum.receptionStaffRating / ratings.length,
+        subwardenAssistanceRating: sum.subwardenAssistanceRating / ratings.length,
+        uctShuttlePunctualityRating: sum.uctShuttlePunctualityRating / ratings.length,
+        cpsAssistanceRating: sum.cpsAssistanceRating / ratings.length,
+        otherRating: sum.otherRating / ratings.length
+    };
+
+    return averages;
+}
+
 
 function updateDashboardAttentionList() {
     const averages = calculateAverages();
@@ -444,7 +500,7 @@ function updateDashboardAttentionList() {
     attentionList.innerHTML = '';
 
     for (const [service, average] of Object.entries(averages)) {
-        if (average < 50) {
+        if (average <= 50) {
             const listItem = document.createElement('li');
             listItem.textContent = `${service}: ${average}%`;
             attentionList.appendChild(listItem);
