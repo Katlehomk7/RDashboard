@@ -107,7 +107,7 @@
         <div class="container">
             <h1>Dashboard</h1>
             <label for="monthDropdown">Select Month:</label>
-            <select id="monthDropdown" onchange="updateDashboard()">
+            <select id="monthDropdown" onchange="updateChartForSelectedMonth()">
                 <option value="january">January</option>
                 <option value="february">February</option>
                 <option value="march">March</option>
@@ -129,6 +129,7 @@
             </div>
         </div>
     </div>
+    
 
     <div id="serviceHelpPage" class="page" style="display:none;">
         <div class="container">
@@ -170,11 +171,11 @@
             </div>
             <div class="service">
                 <h3>Reception Hours</h3>
-                <p>Mon-Fri: 08h00-16h00 (Lunch: 13h00-13h30)</p>
+                <p>Mon-Fri: 08h00-16h00 (Lunch: 13h00-14h00)</p>
             </div>
             <div class="service">
                 <h3>Subwarden on Duty</h3>
-                <p>Mon-Fri: 18h00-23h59</p>
+                <p>Mon-Fri: 18h00-06h00</p>
             </div>
         </div>
         
