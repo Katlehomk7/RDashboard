@@ -1,24 +1,25 @@
 document.addEventListener('DOMContentLoaded', function() {
-
     const lastVisitedPage = localStorage.getItem('lastVisitedPage');
-
+    
     if (lastVisitedPage) {
         showPage(lastVisitedPage);
     } else {
         // Default to service ratings page if no page is stored
         showPage('serviceRatingsPage');
     }
+
     initializeChart();
-  loadComments();
-  setCurrentMonthInDropdown();
+    loadComments();
+    setCurrentMonthInDropdown();
 });
 
 window.addEventListener('beforeunload', function() {
     // Store the current active page in localStorage
-    const activePage = document.querySelector('.page.active').id;
-    localStorage.setItem('lastVisitedPage', activePage);
+    const activePage = document.querySelector('.page.active')?.id;
+    if (activePage) {
+        localStorage.setItem('lastVisitedPage', activePage);
+    }
 });
-
 
 function showPage(pageId) {
     const pages = document.querySelectorAll('.page');
@@ -32,11 +33,11 @@ function showPage(pageId) {
         }
     });
     
-        
     if (pageId === 'dashboardPage') {
         updateDashboardAttentionList();
     }
 }
+
 function setCurrentMonthInDropdown() {
     const monthDropdown = document.getElementById('monthDropdown');
     const currentMonth = new Date().getMonth(); // Get the current month (0-11)
@@ -46,7 +47,8 @@ function setCurrentMonthInDropdown() {
     ];
     monthDropdown.value = monthNames[currentMonth]; // Set the dropdown to the current month
 }
-
+document.getElementById('submitRatingButton').addEventListener('click', submitRatings);
+document.getElementById('submitCommentButton').addEventListener('click', submitComment);
 
 function showRatingValue(rangeId, spanId) {
     const value = document.getElementById(rangeId).value;
@@ -98,13 +100,25 @@ function getTooltipForValue(value) {
     }
 }
 
+// Firebase configuration object
+const firebaseConfig = {
+    apiKey: "AIzaSyDH68FZzuRzlCilnRn4ZdD2KT4YenFVROw",
+  authDomain: "res-dashboard-2024.firebaseapp.com",
+  projectId: "res-dashboard-2024",
+  storageBucket: "res-dashboard-2024.appspot.com",
+  messagingSenderId: "714919854372",
+  appId: "1:714919854372:web:14ba08978c5bf0aa41b3b1",
+  measurementId: "G-PPJ0NN2QMF"
+};
 
-const comments = [];
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
-const allRatingsByMonth = JSON.parse(localStorage.getItem('allRatingsByMonth')) || {};
+const comments = [];  // Ensure comments are initialized properly
 
 function submitRatings() {
-    const currentDate = new Date(); // Initialize currentDate here
+    const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
     const currentYear = currentDate.getFullYear();
     const monthNames = [
@@ -112,145 +126,141 @@ function submitRatings() {
         'july', 'august', 'september', 'october', 'november', 'december'
     ];
     const currentMonthName = monthNames[currentMonth];
-    const submissionKey = `${currentYear}-${currentMonthName}`;
+    const submissionKey = `${userId}-${currentYear}-${currentMonthName}`;
 
-    if (localStorage.getItem(submissionKey)) {
-        alert("You have already submitted your ratings for this month.");
-        return;
-    }
+    // Check if the user has already submitted for the current month in Firestore
+    db.collection('ratingsByMonth').doc(submissionKey).get().then((doc) => {
+        if (doc.exists) {
+            alert("You have already submitted your ratings for this month.");
+        } else {
+            // Gather ratings input values
+            const labRating = parseInt(document.getElementById('labRating').value, 10) || 0;
+            const printerRating = parseInt(document.getElementById('printerRating').value, 10) || 0;
+            const studyRoomRating = parseInt(document.getElementById('studyRoomRating').value, 10) || 0;
+            const laundryRoomRating = parseInt(document.getElementById('laundryRoomRating').value, 10) || 0;
+            const receptionStaffRating = parseInt(document.getElementById('receptionStaffRating').value, 10) || 0;
+            const subwardenAssistanceRating = parseInt(document.getElementById('subwardenAssistanceRating').value, 10) || 0;
+            const uctShuttlePunctualityRating = parseInt(document.getElementById('uctShuttlePunctualityRating').value, 10) || 0;
+            const cpsAssistanceRating = parseInt(document.getElementById('cpsAssistanceRating').value, 10) || 0;
+            const otherRating = parseInt(document.getElementById('otherRating').value, 10) || 0;
 
-    // Save the current date as the submission date
-    localStorage.setItem(submissionKey, currentDate.toString());
+            // Validate that ratings are within an acceptable range (0-100)
+            if (!isValidRating(labRating) || !isValidRating(printerRating) ||
+                !isValidRating(studyRoomRating) || !isValidRating(laundryRoomRating) ||
+                !isValidRating(receptionStaffRating) || !isValidRating(subwardenAssistanceRating) ||
+                !isValidRating(uctShuttlePunctualityRating) || !isValidRating(cpsAssistanceRating) ||
+                !isValidRating(otherRating)) {
+                alert("Please provide valid ratings between 0 and 100.");
+                return;
+            }
 
-    // Proceed with the submission logic
-    const labRating = parseInt(document.getElementById('labRating').value, 10);
-    const printerRating = parseInt(document.getElementById('printerRating').value, 10);
-    const studyRoomRating = parseInt(document.getElementById('studyRoomRating').value, 10);
-    const laundryRoomRating = parseInt(document.getElementById('laundryRoomRating').value, 10);
-    const receptionStaffRating = parseInt(document.getElementById('receptionStaffRating').value, 10);
-    const subwardenAssistanceRating = parseInt(document.getElementById('subwardenAssistanceRating').value, 10);
-    const uctShuttlePunctualityRating = parseInt(document.getElementById('uctShuttlePunctualityRating').value, 10);
-    const cpsAssistanceRating = parseInt(document.getElementById('cpsAssistanceRating').value, 10);
-    const otherRating = parseInt(document.getElementById('otherRating').value, 10);
+            const ratingData = {
+                labRating,
+                printerRating,
+                studyRoomRating,
+                laundryRoomRating,
+                receptionStaffRating,
+                subwardenAssistanceRating,
+                uctShuttlePunctualityRating,
+                cpsAssistanceRating,
+                otherRating,
+                submissionDate: currentDate,
+                userId: userId
+            };
 
-    if (!allRatingsByMonth[currentMonth]) {
-        allRatingsByMonth[currentMonth] = [];
-    }
-
-    allRatingsByMonth[currentMonth].push({
-        labRating, 
-        printerRating, 
-        studyRoomRating,
-        laundryRoomRating,
-        receptionStaffRating,
-        subwardenAssistanceRating,
-        uctShuttlePunctualityRating,
-        cpsAssistanceRating,
-        otherRating
+            // Save the ratings to Firestore
+            db.collection('ratingsByMonth').doc(submissionKey).set(ratingData).then(() => {
+                alert('Ratings submitted successfully!');
+                fetchRatingsForMonth(currentMonthName, currentYear);
+            }).catch((error) => {
+                console.error('Error submitting ratings: ', error);
+                alert("There was an error submitting your ratings. Please try again.");
+            });
+        }
+    }).catch((error) => {
+        console.error('Error checking previous submission: ', error);
+        alert("There was an error checking previous submissions. Please try again.");
     });
-
-    localStorage.setItem('allRatingsByMonth', JSON.stringify(allRatingsByMonth));
-
-    const averages = calculateAverages(allRatingsByMonth[currentMonth]);
-    alert('Ratings submitted successfully!');
-    displayAttentionAreas(averages);
-    updateDashboardChart(averages);
 }
 
-function loadComments() {
-    const commentsList = document.getElementById('commentsList');
-    commentsList.innerHTML = '';
-    const savedComments = JSON.parse(localStorage.getItem('comments')) || [];
-    savedComments.forEach(comment => {
-        const commentItem = createCommentItem(comment.text);
-        commentItem.querySelector('button[data-likes]').dataset.likes = comment.likes;
-        commentItem.querySelector('button[data-likes]').textContent = `Like (${comment.likes})`;
-        
-        commentsList.appendChild(commentItem);
-    });
+function isValidRating(value) {
+    return value >= 0 && value <= 100;
 }
 
+function fetchRatingsForMonth(monthName, year) {
+    const submissionKeyPrefix = `${year}-${monthName}`;
+    
+    // Fetch all ratings for the selected month from Firestore
+    db.collection('ratingsByMonth').where('userId', '==', userId)
+        .where(firebase.firestore.FieldPath.documentId(), '>=', `${submissionKeyPrefix}-`)
+        .where(firebase.firestore.FieldPath.documentId(), '<', `${submissionKeyPrefix}-\uf8ff`)
+        .get().then((querySnapshot) => {
+            const allRatings = [];
+            querySnapshot.forEach((doc) => {
+                allRatings.push(doc.data());
+            });
+
+            const averages = calculateAverages(allRatings);
+            displayAttentionAreas(averages);
+            updateDashboardChart(averages);
+        }).catch((error) => {
+            console.error('Error fetching ratings: ', error);
+            alert("There was an error fetching ratings. Please try again.");
+        });
+}
 
 function displayAttentionAreas(averages) {
     const attentionList = document.getElementById('attentionList');
     attentionList.innerHTML = '';
 
-    for (const [service, average] of Object.entries(averages)) {
+    Object.entries(averages).forEach(([service, average]) => {
         if (average <= 50) {
             const listItem = document.createElement('li');
             listItem.textContent = `${service}: ${average}%`;
             attentionList.appendChild(listItem);
         }
-    }
+    });
 }
+// Submit a new comment to Firestore
 function submitComment() {
     const commentInput = document.getElementById('commentsInput');
     const commentText = commentInput.value.trim();
-    if (commentText === '') return;
 
-    const commentsList = document.getElementById('commentsList');
-    const commentItem = createCommentItem(commentText);
-    commentsList.appendChild(commentItem);
+    if (commentText === '') {
+        alert("Please enter a comment before submitting.");
+        return;
+    }
 
-    saveComments();
+    const newComment = {
+        text: commentText,
+        likes: 0,
+        replies: [],
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        userId: userId
+    };
 
-    commentInput.value = '';
+    db.collection('comments').add(newComment).then(() => {
+        commentInput.value = ''; // Clear the input after submission
+    }).catch(error => {
+        console.error("Error adding comment: ", error);
+        alert("There was an error submitting your comment. Please try again.");
+    });
 }
 
-function createCommentItem(commentText, likes = 0, replies = []) {
+// Create a comment item element
+function createCommentItem(commentData, commentId) {
+    const { text, likes, replies } = commentData;
+
     const commentItem = document.createElement('li');
     commentItem.classList.add('comment');
-    commentItem.innerHTML = `<div class="comment-text">${commentText}</div>`;
+    commentItem.innerHTML = `<div class="comment-text">${text}</div>`;
 
     const commentFooter = document.createElement('div');
     commentFooter.classList.add('comment-footer');
 
-    const replyButton = document.createElement('button');
-    replyButton.textContent = 'Reply';
-    replyButton.onclick = function() {
-        
-        if (document.querySelector('.reply-input')) {
-            return; 
-        }
-        const replyInput = document.createElement('textarea');
-        replyInput.classList.add('reply-input');
-        replyInput.placeholder = 'Write a reply...';
-        const submitReplyButton = document.createElement('button');
-        submitReplyButton.textContent = 'Submit Reply';
-        submitReplyButton.classList.add('submit-reply-button');
-        submitReplyButton.onclick = function() {
-            const replyText = replyInput.value.trim();
-            if (replyText === '') return;
-            const replyItem = createReplyItem(replyText);
-            commentItem.querySelector('.replies-container').appendChild(replyItem);
-            replyInput.remove();
-            submitReplyButton.remove();
-            saveComments();
-        };
-        commentItem.appendChild(replyInput);
-        commentItem.appendChild(submitReplyButton);
-    };
-
-    const deleteButton = document.createElement('button');
-    deleteButton.textContent = 'Delete';
-    deleteButton.onclick = function() {
-        commentItem.remove();
-        saveComments();
-    };
-
-    const likeButton = document.createElement('button');
-    likeButton.textContent = `Like (${likes})`;
-    likeButton.dataset.likes = likes;
-    likeButton.dataset.liked = 'false';
-    likeButton.onclick = function() {
-        if (likeButton.dataset.liked === 'false') {
-            const likes = parseInt(likeButton.dataset.likes) + 1;
-            likeButton.dataset.likes = likes;
-            likeButton.textContent = `Like (${likes})`;
-            likeButton.dataset.liked = 'true';
-            saveComments();
-        }
-    };
+    const replyButton = createReplyButton(commentId, commentItem);
+    const deleteButton = createDeleteButton(commentId);
+    const likeButton = createLikeButton(commentId, likes);
 
     const leftButtonsDiv = document.createElement('div');
     leftButtonsDiv.classList.add('left-buttons');
@@ -261,140 +271,153 @@ function createCommentItem(commentText, likes = 0, replies = []) {
     commentFooter.appendChild(likeButton);
     commentItem.appendChild(commentFooter);
 
+    // Add replies
     const repliesContainer = document.createElement('ul');
     repliesContainer.classList.add('replies-container');
-    if (replies.length > 0) {
-        replies.forEach(replyText => {
-            const replyItem = createReplyItem(replyText);
+    if (replies && replies.length > 0) {
+        replies.forEach(reply => {
+            const replyItem = createReplyItem(reply);
             repliesContainer.appendChild(replyItem);
         });
     }
-
     commentItem.appendChild(repliesContainer);
 
     return commentItem;
 }
-function createReplyItem(replyText, likes = 0, replies = []) {
-    const replyItem = document.createElement('li');
-    replyItem.classList.add('reply');
-    replyItem.innerHTML = `<div class="comment-text">${replyText}</div>`;
 
-    const commentFooter = document.createElement('div');
-    commentFooter.classList.add('comment-footer');
-
+// Create a reply button
+function createReplyButton(commentId, commentItem) {
     const replyButton = document.createElement('button');
     replyButton.textContent = 'Reply';
-    replyButton.onclick = function() {
-        // Check if there is already an active reply input
-        if (document.querySelector('.reply-input')) {
-            return; // Do nothing if a reply input already exists
-        }
+    replyButton.onclick = function () {
+        // Check if there's already an active reply input
+        if (commentItem.querySelector('.reply-input')) return;
+
         const replyInput = document.createElement('textarea');
         replyInput.classList.add('reply-input');
         replyInput.placeholder = 'Write a reply...';
+
         const submitReplyButton = document.createElement('button');
         submitReplyButton.textContent = 'Submit Reply';
         submitReplyButton.classList.add('submit-reply-button');
-        submitReplyButton.onclick = function() {
+        submitReplyButton.onclick = function () {
             const replyText = replyInput.value.trim();
-            if (replyText === '') return;
-            const nestedReplyItem = createReplyItem(replyText);
-            replyItem.querySelector('.replies-container').appendChild(nestedReplyItem);
-            replyInput.remove();
-            submitReplyButton.remove();
-            saveComments();
-        };
-        replyItem.appendChild(replyInput);
-        replyItem.appendChild(submitReplyButton);
-    };
+            if (replyText === '') {
+                alert("Please enter a reply before submitting.");
+                return;
+            }
 
+            const newReply = {
+                text: replyText,
+                likes: 0,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                userId: userId
+            };
+
+            db.collection('comments').doc(commentId).update({
+                replies: firebase.firestore.FieldValue.arrayUnion(newReply)
+            }).then(() => {
+                replyInput.remove();
+                submitReplyButton.remove();
+            }).catch(error => {
+                console.error("Error adding reply: ", error);
+                alert("There was an error submitting your reply. Please try again.");
+            });
+        };
+
+        commentItem.appendChild(replyInput);
+        commentItem.appendChild(submitReplyButton);
+    };
+    return replyButton;
+}
+
+// Create a delete button
+function createDeleteButton(commentId) {
     const deleteButton = document.createElement('button');
     deleteButton.textContent = 'Delete';
-    deleteButton.onclick = function() {
-        replyItem.remove();
-        saveComments();
+    deleteButton.onclick = function () {
+        if (confirm("Are you sure you want to delete this comment?")) {
+            db.collection('comments').doc(commentId).delete().catch(error => {
+                console.error("Error deleting comment: ", error);
+                alert("There was an error deleting the comment. Please try again.");
+            });
+        }
     };
+    return deleteButton;
+}
 
+// Create a like button
+function createLikeButton(commentId, likes) {
     const likeButton = document.createElement('button');
     likeButton.textContent = `Like (${likes})`;
     likeButton.dataset.likes = likes;
     likeButton.dataset.liked = 'false';
-    likeButton.onclick = function() {
+    likeButton.onclick = function () {
         if (likeButton.dataset.liked === 'false') {
-            const likes = parseInt(likeButton.dataset.likes) + 1;
-            likeButton.dataset.likes = likes;
-            likeButton.textContent = `Like (${likes})`;
-            likeButton.dataset.liked = 'true';
-            saveComments();
+            db.collection('comments').doc(commentId).update({
+                likes: firebase.firestore.FieldValue.increment(1)
+            }).then(() => {
+                likeButton.dataset.liked = 'true';
+                likeButton.textContent = `Like (${parseInt(likeButton.dataset.likes) + 1})`;
+                likeButton.dataset.likes = parseInt(likeButton.dataset.likes) + 1;
+            }).catch(error => {
+                console.error("Error liking comment: ", error);
+                alert("There was an error liking the comment. Please try again.");
+            });
         }
     };
+    return likeButton;
+}
 
-    const leftButtonsDiv = document.createElement('div');
-    leftButtonsDiv.classList.add('left-buttons');
-    leftButtonsDiv.appendChild(replyButton);
-    leftButtonsDiv.appendChild(deleteButton);
+// Create a reply item element
+function createReplyItem(replyData) {
+    const { text, likes } = replyData;
 
-    commentFooter.appendChild(leftButtonsDiv);
-    commentFooter.appendChild(likeButton);
-    replyItem.appendChild(commentFooter);
+    const replyItem = document.createElement('li');
+    replyItem.classList.add('reply');
+    replyItem.innerHTML = `<div class="comment-text">${text}</div>`;
 
-    const repliesContainer = document.createElement('ul');
-    repliesContainer.classList.add('replies-container');
-    replies.forEach(reply => {
-        const nestedReplyItem = createReplyItem(reply.text, reply.likes, reply.replies);
-        repliesContainer.appendChild(nestedReplyItem);
-    });
-    replyItem.appendChild(repliesContainer);
+    const replyFooter = document.createElement('div');
+    replyFooter.classList.add('comment-footer');
+
+    const likeButton = createLikeButtonForReply(likes);
+    replyFooter.appendChild(likeButton);
+
+    replyItem.appendChild(replyFooter);
 
     return replyItem;
 }
-function saveComments() {
-    const commentsList = document.getElementById('commentsList');
-    const commentItems = commentsList.getElementsByClassName('comment');
 
-    const savedComments = Array.from(commentItems).map(commentItem => {
-        const commentText = commentItem.querySelector('.comment-text').textContent;
-        const likes = commentItem.querySelector('button[data-likes]').dataset.likes;
-        const replies = Array.from(commentItem.querySelectorAll('.replies-container .reply'))
-            .map(replyItem => replyItem.childNodes[0].textContent);
-        return { text: commentText, likes: parseInt(likes), replies: replies };
-    });
-
-    localStorage.setItem('comments', JSON.stringify(savedComments));
+// Create a like button for replies
+function createLikeButtonForReply(likes) {
+    const likeButton = document.createElement('button');
+    likeButton.textContent = `Like (${likes})`;
+    likeButton.dataset.likes = likes;
+    likeButton.dataset.liked = 'false';
+    likeButton.onclick = function () {
+        if (likeButton.dataset.liked === 'false') {
+            likeButton.dataset.liked = 'true';
+            likeButton.textContent = `Like (${parseInt(likeButton.dataset.likes) + 1})`;
+            likeButton.dataset.likes = parseInt(likeButton.dataset.likes) + 1;
+            // Future functionality to update likes count in Firestore can be added here.
+        }
+    };
+    return likeButton;
 }
-
-function saveReplies(repliesContainer) {
-    const replies = [];
-    repliesContainer.querySelectorAll('li.comment').forEach(replyItem => {
-        const replyText = replyItem.querySelector('.comment-text').textContent;
-        const likes = parseInt(replyItem.querySelector('button[data-likes]').dataset.likes);
-        const nestedReplies = saveReplies(replyItem.querySelector('.replies-container'));
-        const reply = { text: replyText, likes: likes, replies: nestedReplies };
-        replies.push(reply);
-    });
-    return replies;
-}
-
-function loadComments() {
-    const commentsList = document.getElementById('commentsList');
-    commentsList.innerHTML = '';
-    const savedComments = JSON.parse(localStorage.getItem('comments')) || [];
-    savedComments.forEach(comment => {
-        const commentItem = createCommentItem(comment.text, comment.likes, comment.replies);
-        commentsList.appendChild(commentItem);
-    });
-}
-
-
-
 function updateChartForSelectedMonth() {
     const monthDropdown = document.getElementById('monthDropdown');
-    const selectedMonth = monthDropdown.value;
+    const selectedMonth = monthDropdown.value.toLowerCase(); // Convert selected month to lowercase
     const monthNames = [
         'january', 'february', 'march', 'april', 'may', 'june',
         'july', 'august', 'september', 'october', 'november', 'december'
     ];
     const monthIndex = monthNames.indexOf(selectedMonth);
+
+    if (monthIndex === -1) {
+        console.error("Invalid month selected.");
+        return;
+    }
+
     const ratingsForSelectedMonth = allRatingsByMonth[monthIndex] || [];
     const averages = calculateAverages(ratingsForSelectedMonth);
     updateDashboardChart(averages);
@@ -418,18 +441,36 @@ function initializeChart() {
             ],
             datasets: [{
                 label: 'Average Ratings',
-                data: [],
+                data: [], // Data will be populated dynamically
                 backgroundColor: 'rgba(255, 99, 142, 0.6)',
                 borderColor: 'rgba(255, 99, 142, 1)',
                 borderWidth: 1
             }]
-            
         },
         options: {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 100
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Rating (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Service Areas'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw}%`;
+                        }
+                    }
                 }
             }
         }
@@ -437,6 +478,11 @@ function initializeChart() {
 }
 
 function updateDashboardChart(averages) {
+    if (!window.ratingsChart) {
+        console.error("Chart not initialized.");
+        return;
+    }
+
     const ratingsChart = window.ratingsChart;
     ratingsChart.data.datasets[0].data = [
         averages.labRating,
@@ -448,23 +494,23 @@ function updateDashboardChart(averages) {
         averages.uctShuttlePunctualityRating,
         averages.cpsAssistanceRating,
         averages.otherRating
-        
     ];
     ratingsChart.update();
 }
+
 function calculateAverages(ratings) {
     if (!ratings || ratings.length === 0) return {};
 
     const sum = ratings.reduce((acc, rating) => {
-        acc.labRating += rating.labRating;
-        acc.printerRating += rating.printerRating;
-        acc.studyRoomRating += rating.studyRoomRating;
-        acc.laundryRoomRating += rating.laundryRoomRating;
-        acc.receptionStaffRating += rating.receptionStaffRating;
-        acc.subwardenAssistanceRating += rating.subwardenAssistanceRating;
-        acc.uctShuttlePunctualityRating += rating.uctShuttlePunctualityRating;
-        acc.cpsAssistanceRating += rating.cpsAssistanceRating;
-        acc.otherRating += rating.otherRating;
+        acc.labRating += rating.labRating || 0;
+        acc.printerRating += rating.printerRating || 0;
+        acc.studyRoomRating += rating.studyRoomRating || 0;
+        acc.laundryRoomRating += rating.laundryRoomRating || 0;
+        acc.receptionStaffRating += rating.receptionStaffRating || 0;
+        acc.subwardenAssistanceRating += rating.subwardenAssistanceRating || 0;
+        acc.uctShuttlePunctualityRating += rating.uctShuttlePunctualityRating || 0;
+        acc.cpsAssistanceRating += rating.cpsAssistanceRating || 0;
+        acc.otherRating += rating.otherRating || 0;
         return acc;
     }, {
         labRating: 0,
@@ -492,7 +538,6 @@ function calculateAverages(ratings) {
 
     return averages;
 }
-
 
 function updateDashboardAttentionList() {
     const averages = calculateAverages();
